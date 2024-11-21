@@ -1,11 +1,13 @@
 import sequelize from "../config/db.js";
-import User from "./user.js";
-import ChatRoom from "./chatRoom.js";
+// import User from "./user.js";
+// import ChatRoom from "./chatRoom.js";
 
 const UserRoom = sequelize.define("UserRoom", {}, { timestamps: false });
 
-User.belongsToMany(ChatRoom,{through:UserRoom,foreignKey:'user_id'})
-ChatRoom.belongsToMany(User,{through:UserRoom,foreignKey:'room_id'})
+export const setupUserRoomAssociations = (User, ChatRoom) => {
+  User.belongsToMany(ChatRoom, { through: UserRoom, foreignKey: "user_id" });
+  ChatRoom.belongsToMany(User, { through: UserRoom, foreignKey: "room_id" });
+};
 
 export default UserRoom;
 

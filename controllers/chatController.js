@@ -1,10 +1,12 @@
+/** @format */
+
 import ChatRoom from "../models/chatRoom.js";
 import UserRoom from "../models/userRoom.js";
 import RoomInvite from "../models/RoomInvite.js";
 import { Sequelize } from "sequelize";
 import crypto from "node:crypto";
 export const createChatRoom = async (req, res) => {
-  const { roomName, isPrivate, userId } = req.body;
+  const { roomName, isPrivate } = req.body;
   try {
     if (!roomName) {
       return res.status(400).json({ error: "Room name is required" });
@@ -12,7 +14,7 @@ export const createChatRoom = async (req, res) => {
     const newRoom = await ChatRoom.create({
       room_name: roomName,
       is_private: isPrivate,
-      host_id: userId, // Assign the host
+      host_id: req?.userId, // Assign the host
     });
     res.status(201).json(newRoom);
   } catch (error) {
@@ -22,11 +24,11 @@ export const createChatRoom = async (req, res) => {
 };
 
 export const generateInviteLink = async (req, res) => {
-  const { roomId, inviterId } = req.body;
+  const { roomId } = req.body;
   try {
     // Verify the inviter is the host of the room
     const room = await ChatRoom.findByPk(roomId);
-    if (!room || room.host_id !== inviterId) {
+    if (!room || room.host_id !== req.userId) {
       return res
         .status(403)
         .json({ error: "Only the host can generate an invite link." });
@@ -50,7 +52,7 @@ export const generateInviteLink = async (req, res) => {
 };
 export const validateInviteLink = async (req, res) => {
   const { token } = req.params;
-  
+
   try {
     // Find the invite by token
     const invite = await RoomInvite.findOne({ where: { token } });
@@ -59,20 +61,20 @@ export const validateInviteLink = async (req, res) => {
         .status(404)
         .json({ error: "Invalid or expired invitation link." });
     }
-     const room = await ChatRoom.findByPk(invite.room_id);
-       if (!room) {
-         return res.status(404).json({ error: "Chat room not found." });
-       }
-      res.status(200).json({ room });
+    const room = await ChatRoom.findByPk(invite.room_id);
+    if (!room) {
+      return res.status(404).json({ error: "Chat room not found." });
+    }
+    res.status(200).json({ room });
   } catch (error) {
     console.error("Error validating invite link:", error);
     res.status(500).json({ error: "Failed to validate invitation link." });
   }
 };
 export const joinChatRoom = async (req, res) => {
-  const { userId, roomId,token } = req.body;
+  const { roomId, token } = req.body;
   try {
-    if (!userId || !roomId) {
+    if (!req?.userId || !roomId) {
       return res
         .status(400)
         .json({ error: "User ID and Room ID are required" });
@@ -83,18 +85,18 @@ export const joinChatRoom = async (req, res) => {
     }
     // Check if user is already in the room
     const existingEntry = await UserRoom.findOne({
-      where: { user_id: userId, room_id: roomId },
+      where: { user_id: req?.userId, room_id: roomId },
     });
     if (existingEntry) {
       return res.status(400).json({ error: "User already in the room" });
     }
-  
+
     if (room.is_private) {
       // Check if the user has a valid invite token
       const isInvited = token
         ? await RoomInvite.findOne({ where: { token, room_id: roomId } })
         : null;
-      const isHost = room.host_id === userId;
+      const isHost = room.host_id === req?.userId;
 
       if (!isInvited && !isHost) {
         return res
@@ -108,7 +110,7 @@ export const joinChatRoom = async (req, res) => {
       // }
     }
 
-    await UserRoom.create({ user_id: userId, room_id: roomId });
+    await UserRoom.create({ user_id: req?.userId, room_id: roomId });
     res.status(200).json({ message: "Joined room successfully" });
   } catch (error) {
     console.error("Error joining chat room:", error);
@@ -162,21 +164,21 @@ export const getRoomParticipants = async (req, res) => {
   }
 };
 
-export const searchChatRooms = async (req,res) =>{
-   const { query } = req.query;
+export const searchChatRooms = async (req, res) => {
+  const { query } = req.query;
   try {
-       if (!query) {
-         return res.status(400).json({ error: "Room Name is required" });
-       }
-        const rooms = await ChatRoom.findAll({
-          where: {
-            room_name: {
-              [Sequelize.Op.like]: `%${query}%`, // Search for rooms containing the query
-            },
-          },
-        });
-       res.status(200).json(rooms);
+    if (!query) {
+      return res.status(400).json({ error: "Room Name is required" });
+    }
+    const rooms = await ChatRoom.findAll({
+      where: {
+        room_name: {
+          [Sequelize.Op.like]: `%${query}%`, // Search for rooms containing the query
+        },
+      },
+    });
+    res.status(200).json(rooms);
   } catch (error) {
-     res.status(500).json({ error: "Failed to search chat rooms" });
+    res.status(500).json({ error: "Failed to search chat rooms" });
   }
-}
+};

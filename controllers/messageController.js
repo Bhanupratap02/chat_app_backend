@@ -1,4 +1,4 @@
-import { Message } from "../models/message.js";
+import  Message  from "../models/message.js";
 import { Op } from "sequelize";
 // Fetch messages for a specific room
 export const fetchMessages = async (req, res) => {
@@ -68,16 +68,16 @@ export const searchMessages = async (req,res) =>{
 
 /// Delete a message ( for both group and personal chats):
 export const deleteMessage = async (req,res) =>{
-  const {messageId,userId} = req.body
+  const {messageId} = req.body
   try {
-    if (!messageId || !userId) {
+    if (!messageId || !req?.userId) {
       return res
       .status(400)
       .json({ error: "Message ID and User ID are required" });
       }
     // ensure the user owns the message
     const message = await Message.findOne({
-      where: { id: messageId, sender_id: userId },
+      where: { id: messageId, sender_id: req?.userId },
     });
      if (!message) {
        return res
