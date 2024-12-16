@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 
 // Middleware to verify JWT token
 export const verifyToken = (req, res, next) => {
+  console.log("cookie", req?.cookies);
  const token = req?.cookies?.jwt || req?.headers?.authorization?.split(" ")[1];
   if (!token) return res.status(403).json({ error: "Not authorized, no token" });
 

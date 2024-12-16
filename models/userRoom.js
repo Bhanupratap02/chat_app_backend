@@ -7,6 +7,9 @@ const UserRoom = sequelize.define("UserRoom", {}, { timestamps: false });
 export const setupUserRoomAssociations = (User, ChatRoom) => {
   User.belongsToMany(ChatRoom, { through: UserRoom, foreignKey: "user_id" });
   ChatRoom.belongsToMany(User, { through: UserRoom, foreignKey: "room_id" });
+
+  UserRoom.belongsTo(User, { foreignKey: "user_id" }); // Establish association
+  UserRoom.belongsTo(ChatRoom, { foreignKey: "room_id" });
 };
 
 export default UserRoom;

@@ -1,6 +1,7 @@
 import sequelize from "../config/db.js";
 import { DataTypes } from "sequelize";
 import UserRoom from "./userRoom.js";
+import User from "./user.js";
 const ChatRoom = sequelize.define(
   "ChatRoom",
   {
@@ -26,5 +27,8 @@ const ChatRoom = sequelize.define(
 
 ChatRoom.hasMany(UserRoom, { foreignKey: "room_id" });
 UserRoom.belongsTo(ChatRoom, { foreignKey: "room_id" });
+
+// Associate ChatRoom with User (host)
+ChatRoom.belongsTo(User, { as: "host", foreignKey: "host_id" });
 
 export default ChatRoom

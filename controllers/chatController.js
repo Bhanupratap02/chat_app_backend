@@ -2,6 +2,7 @@
 
 import ChatRoom from "../models/chatRoom.js";
 import UserRoom from "../models/userRoom.js";
+import User from "../models/user.js";
 import RoomInvite from "../models/RoomInvite.js";
 import { Sequelize } from "sequelize";
 import crypto from "node:crypto";
@@ -135,8 +136,13 @@ export const getAllChatRooms = async (req, res) => {
           model: UserRoom,
           attributes: [],
         },
+        {
+          model: User, // Include host details
+          as: "host", // Alias for the association
+          attributes: ["id", "username", "profile_picture"],
+        },
       ],
-      group: ["ChatRoom.id"], // Group by ChatRoom ID to count participants
+      group: ["ChatRoom.id", "host.id"], // Group by ChatRoom ID to count participants
       order: [[Sequelize.literal("participantCount"), "DESC"]], // Sort by participant count
     });
     res.status(200).json(chatRooms);
