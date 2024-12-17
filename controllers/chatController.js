@@ -7,7 +7,7 @@ import RoomInvite from "../models/RoomInvite.js";
 import { Sequelize } from "sequelize";
 import crypto from "node:crypto";
 export const createChatRoom = async (req, res) => {
-  const { roomName, isPrivate } = req.body;
+  const { roomName, isPrivate,bio } = req.body;
   try {
     if (!roomName) {
       return res.status(400).json({ error: "Room name is required" });
@@ -16,6 +16,7 @@ export const createChatRoom = async (req, res) => {
       room_name: roomName,
       is_private: isPrivate,
       host_id: req?.userId, // Assign the host
+      bio:bio
     });
     res.status(201).json(newRoom);
   } catch (error) {
@@ -120,36 +121,73 @@ export const joinChatRoom = async (req, res) => {
 };
 
 // Get all group chat rooms sorted by participant count
+
 export const getAllChatRooms = async (req, res) => {
   try {
+    const { search = "", page = 1, limit = 10 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Step 1: Paginated query without participant count
     const chatRooms = await ChatRoom.findAll({
-      attributes: {
-        include: [
-          [
-            Sequelize.fn("COUNT", Sequelize.col("UserRooms.user_id")),
-            "participantCount",
-          ],
-        ],
-      },
+      attributes: [
+        "id",
+        "room_name",
+        "is_private",
+        "bio",
+        "host_id",
+        "created_at",
+      ],
       include: [
         {
-          model: UserRoom,
-          attributes: [],
-        },
-        {
-          model: User, // Include host details
-          as: "host", // Alias for the association
+          model: User,
+          as: "host",
           attributes: ["id", "username", "profile_picture"],
         },
       ],
-      group: ["ChatRoom.id", "host.id"], // Group by ChatRoom ID to count participants
-      order: [[Sequelize.literal("participantCount"), "DESC"]], // Sort by participant count
+      where: {
+        room_name: { [Sequelize.Op.like]: `%${search}%` },
+      },
+      limit: parseInt(limit),
+      offset: offset,
     });
-    res.status(200).json(chatRooms);
+
+    // Step 2: Fetch participant count separately
+    const chatRoomsWithCount = await Promise.all(
+      chatRooms.map(async (chatRoom) => {
+        const participantCount = await UserRoom.count({
+          where: { room_id: chatRoom.id },
+        });
+        return {
+          ...chatRoom.get({ plain: true }),
+          participantCount,
+        };
+      })
+    );
+
+    // Step 3: Count total chat rooms matching the query
+    const total = await ChatRoom.count({
+      where: { room_name: { [Sequelize.Op.like]: `%${search}%` } },
+    });
+    // Calculate next cursor (if more pages are available)
+    const nextCursor =
+      page < Math.ceil(total / limit) ? parseInt(page) + 1 : null;
+    // Step 4: Send response
+    res.status(200).json({
+      total: total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / limit),
+      nextCursor,
+      data: chatRoomsWithCount,
+    });
   } catch (error) {
+    console.error("Error fetching chat rooms:", error);
     res.status(500).json({ error: "Failed to fetch chat rooms" });
   }
 };
+
+
+
 
 // Get all participants in a specific chat room
 export const getRoomParticipants = async (req, res) => {

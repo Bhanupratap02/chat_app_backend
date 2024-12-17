@@ -1,8 +1,23 @@
 import sequelize from "../config/db.js";
 // import User from "./user.js";
 // import ChatRoom from "./chatRoom.js";
-
-const UserRoom = sequelize.define("UserRoom", {}, { timestamps: false });
+import { DataTypes } from "sequelize";
+const UserRoom = sequelize.define(
+  "UserRoom",
+  {
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field:"user_id"
+    },
+    room_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field:"room_id"
+    },
+  },
+  { timestamps: false }
+);
 
 export const setupUserRoomAssociations = (User, ChatRoom) => {
   User.belongsToMany(ChatRoom, { through: UserRoom, foreignKey: "user_id" });

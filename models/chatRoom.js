@@ -13,6 +13,10 @@ const ChatRoom = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    bio:{
+      type: DataTypes.TEXT,
+      allowNull:true
+    },
     host_id: {
       type: DataTypes.INTEGER, // Host user ID
       allowNull: false,
